@@ -1,0 +1,59 @@
+上传协议
+该文档定义不同系统通过socket上传文件的协议。
+
+注意事项
+
+客户端每次上传必须打开和关闭套接字，不能共用套接字
+上传流程
+
+上传使用两步方式： 1、请求上传 2、发送文件内容
+
+1.请求上传，客户端发送如下数据：
+packet_length + app_id + file_size + file_hash + TLV ---- 包头定义：
+
+代号	 长度	 说明
+packet_length	 4字节	 包的总长度
+app_id	 2字节	 应用ID
+file_size	 4字节	 文件大小
+file_hash	 16字节	 文件hash
+TAG	 2字节	 TLV的TAG
+LENGTH	 2字节	 TLV的LENGTH
+
+2.请求完成后，服务器返回2个字节结果result：
+取值	 说明
+0	 允许上传
+1	 系统繁忙
+2	 认证错误
+3	 文件太大
+4	 非法参数
+5	 文件类型不正确
+6	 文件已经存在
+ps： 文件已存在，返回文件信息：packet_length + TLV
+
+3.客户端发送文件数据
+
+4.文件完全上传完毕后，服务器返回结果：
+packet_length + result + TLV 定义如下：
+
+代号	 长度	 说明
+package_length	 4字节	包的总长度
+result	 2字节	上传结果
+TAG	 2字节	 TLV的TAG
+LENGTH	 2字节	 TLV的LENGTH
+
+2个字节的result：
+取值	 说明
+10	 上传成功
+11	 校验错误
+12	 文件系统错误
+
+
+------应用上传TLV协议如：
+	应用ID：1
+
+	TLV的TAG取值：
+
+代号	 tag值	 value类型	 请求/响应	 说明
+session_id	 1	 字符串	 请求	 客户端会话ID
+file_name	 2	 字符串	 请求	 原始文件名
+file_url	 10	 字符串	 响应	 文件地址
