@@ -62,7 +62,7 @@ class BaseHandler(object):
 
     def _check_session(self):
         'check self.session_id and return True/False'
-        raise NotImplemented
+        raise Exception, NotImplemented
 
     def handle_request(self, tlv):
         # print 'handle request', tlv
@@ -91,7 +91,7 @@ class BaseHandler(object):
         return self._fs.put_file(self.file_name, self.file_type, content)
     
     def _make_return_file_name(self, filename):
-        raise NotImplemented
+        raise Exception, NotImplemented
 
     def handle_upload(self, content):
         # print 'handle upload', content
