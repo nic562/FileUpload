@@ -12,6 +12,7 @@ class BaseFileSystem(object):
     '基础文件系统类，用于定义文件上传handler所使用的文件操作函数'
     def check_file_exist(self, filename, filehash, filetype):
         '''检查文件是否存在
+        若存在，则返回该文件名，不存在则返回False
         @param filehash: 为一个16字节的字符串
         '''
         raise NotImplemented

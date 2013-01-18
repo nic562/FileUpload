@@ -46,10 +46,12 @@ class BaseHandler(object):
             pos = pos + 4 + length
         
     def _check_file_exist(self):
-        'check self.file_name and return True/False'
-        return self._fs.check_file_exist(self.file_name)
+        'check self.file_name and return exist_filename/False'
+        if settings.DEBUG: print 'check file exist........'
+        return self._fs.check_file_exist(self.file_name, self.file_hash, self.file_type)
     
     def _check_file_extension(self):
+        if settings.DEBUG: print 'check file extension........'
         ext_index = self.file_name.rfind('.')
         if ext_index == -1:
             raise FileTypeError()
@@ -60,10 +62,14 @@ class BaseHandler(object):
         else:
             raise FileTypeError()
 
-    def _check_session(self):
+    def check_session(self):
         'check self.session_id and return True/False'
         raise Exception, NotImplemented
 
+    def check_request(self, tlv):
+        '请重载该方法，用于各个不同需求的tlv参数检测'
+        raise Exception, NotImplemented
+        
     def handle_request(self, tlv):
         # print 'handle request', tlv
         self._parse_request_args(tlv)
@@ -73,24 +79,27 @@ class BaseHandler(object):
         # 检查请求参数是否存在错误
             raise InvalidArgsError()
 
-        if not self._check_session():
+        if not self.check_session():
         # 检查session
             raise AuthenticateError()
         
         self._check_file_extension()
         
-        if self._check_file_exist():
+        exist_file = self._check_file_exist()
+        if exist_file:
             result = ''
             result += int2hex(10, int_len=2)
-            result += int2hex(len(self.file_name), int_len=2)
-            result += self.file_name
+            result += int2hex(len(exist_file), int_len=2)
+            result += exist_file
             raise FileExistError(result)
+        
+        self.check_request(tlv)
         
     def _save_file(self, content):
         '保存文件并返回保存后的文件名'
         return self._fs.put_file(self.file_name, self.file_type, content)
     
-    def _make_return_file_name(self, filename):
+    def make_return_file_name(self, filename):
         raise Exception, NotImplemented
 
     def handle_upload(self, content):
@@ -101,7 +110,7 @@ class BaseHandler(object):
         if m.digest() != self.file_hash:
             raise FileHashError()
         
-        file_name = self._make_return_file_name(self._save_file(content))
+        file_name = self.make_return_file_name(self._save_file(content))
         
         # 返回结果TLV
         result = ''

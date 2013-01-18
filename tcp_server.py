@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import sys, traceback
+import sys, traceback, logging
 
 from gevent import server, monkey
 from multiprocessing import Process, current_process
@@ -12,6 +12,8 @@ from FileUpload.const import (RESULT_INVALID_ARGS, FileSizeError, RESULT_FILE_TO
                               RESULT_FILE_EXIST, RESULT_ALLOW_UPLOAD, FileHashError, RESULT_HASH_ERROR, FilesystemError,
                               RESULT_FS_ERROR, RESULT_UPLOAD_SUCCESS)
 from FileUpload.configs import settings
+
+log = logging
 
 monkey.patch_os()
 
@@ -42,6 +44,11 @@ def do_upload(socket, address):
         fileobj.write(int2hex(RESULT_FILE_TOO_LARGE, int_len=2))
         fileobj.close()
         return
+    except Exception:
+        log.error(traceback.format_exc())
+        fileobj.write(int2hex(RESULT_FS_ERROR, int_len=2))
+        fileobj.close()
+        return
         
     if not handler: # 找不到授权应用
         fileobj.write(int2hex(RESULT_INVALID_ARGS, int_len=2))
@@ -64,6 +71,9 @@ def do_upload(socket, address):
         fileobj.write(e.message)
         fileobj.close()
         return
+    except Exception:
+        log.error(traceback.format_exc())
+        error_code = RESULT_FS_ERROR
         
     if error_code:
         fileobj.write(int2hex(error_code, int_len=2))
@@ -84,9 +94,8 @@ def do_upload(socket, address):
         result_tlv = handler.handle_upload(content)
     except FileHashError:
         error_code = RESULT_HASH_ERROR
-    except FilesystemError:
-        if settings.DEBUG:
-            print traceback.format_exc()
+    except Exception:
+        log.error(traceback.format_exc())
         error_code = RESULT_FS_ERROR
     if error_code:
         fileobj.write(int2hex(error_code, int_len=2))
