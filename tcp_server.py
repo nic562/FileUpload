@@ -30,8 +30,11 @@ def do_upload(socket, address):
         # print 'request head', repr(request_head)
         packet_length = hex2int(request_head[:4]) # 第一次参数接受、解析出错，就不理会
     except:
-        fileobj.write(int2hex(RESULT_INVALID_ARGS, int_len=2))
-        fileobj.close()
+        try:
+            fileobj.write(int2hex(RESULT_INVALID_ARGS, int_len=2))
+            fileobj.close()
+        except:
+            pass
         return
         
     app_id = hex2int(request_head[4:6], int_len=2)
