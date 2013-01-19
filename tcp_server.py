@@ -25,9 +25,9 @@ def do_upload(socket, address):
     fileobj = socket.makefile()
     
     # 读取上传请求
-    request_head = fileobj.read(26)
-    # print 'request head', repr(request_head)
     try:
+        request_head = fileobj.read(26)
+        # print 'request head', repr(request_head)
         packet_length = hex2int(request_head[:4]) # 第一次参数接受、解析出错，就不理会
     except:
         fileobj.write(int2hex(RESULT_INVALID_ARGS, int_len=2))
