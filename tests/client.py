@@ -6,9 +6,6 @@ Created on 2013-1-18
 '''
 import sys, socket, hashlib, traceback
 
-from gevent import monkey
-monkey.patch_all()
-
 from FileUpload.configs import settings
 from FileUpload.const import (RESULT_ALLOW_UPLOAD, RESULT_UPLOAD_SUCCESS, RESULT_BUSY, RESULT_AUTH_FAIL,
                               RESULT_FILE_TOO_LARGE, RESULT_INVALID_ARGS, RESULT_WRONG_FILE_TYPE, RESULT_FILE_EXIST,
@@ -54,7 +51,15 @@ def push_file(app_id, filename, session_id, server_ip, server_port):
     response = s.recv(2) # 请求结果2个字节
     result = hex2int(response, int_len=2)
     if result == RESULT_ALLOW_UPLOAD:
-        s.sendall(content)
+        p = int(file_size / 10)
+        sum_ = 0
+        for _k in range(1, 10):
+            c_ = content[p*(_k-1): p*_k]
+            sum_ += len(c_)
+            print '  %d%% [%d/%d] ...' %(_k * 10, sum_, file_size)
+            s.sendall(c_)
+        print ' %d%% [%d/%d] ...' %((_k + 1) * 10, sum_ + len(content[p*_k: ]), file_size)
+        s.sendall(content[p*_k: ])
         try:
             upload_response = s.recv(6) # 这6个字节分别为：4个字节的包长度，2个字节的上传结果
             # 正常上传结果

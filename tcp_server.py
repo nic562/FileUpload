@@ -9,7 +9,7 @@ from FileUpload.handlers import get_app_handler
 from FileUpload.utils import int2hex, hex2int
 from FileUpload.const import (RESULT_INVALID_ARGS, FileSizeError, RESULT_FILE_TOO_LARGE, InvalidArgsError,
                               AuthenticateError, RESULT_AUTH_FAIL, FileTypeError, RESULT_WRONG_FILE_TYPE, FileExistError,
-                              RESULT_FILE_EXIST, RESULT_ALLOW_UPLOAD, FileHashError, RESULT_HASH_ERROR, FilesystemError,
+                              RESULT_FILE_EXIST, RESULT_ALLOW_UPLOAD, FileHashError, RESULT_HASH_ERROR,
                               RESULT_FS_ERROR, RESULT_UPLOAD_SUCCESS)
 from FileUpload.configs import settings
 
