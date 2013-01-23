@@ -85,6 +85,8 @@ class BaseHandler(object):
         
         self._check_file_extension()
         
+        self.check_request(tlv)
+        
         exist_file = self._check_file_exist()
         if exist_file:
             result = ''
@@ -92,8 +94,6 @@ class BaseHandler(object):
             result += int2hex(len(exist_file), int_len=2)
             result += exist_file
             raise FileExistError(result)
-        
-        self.check_request(tlv)
         
     def _save_file(self, content):
         '保存文件并返回保存后的文件名'
