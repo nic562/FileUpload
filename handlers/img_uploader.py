@@ -8,6 +8,7 @@ Created on 2012-9-28
 from FileUpload.handlers.base import BaseHandler
 
 class ImageHandler(BaseHandler):
+    CONNECTION_TIMEOUT = 10 # 上传过程总超时时间, 秒
     ALLOW_FILE_EXTENSION = ['JPG', 'JPEG', 'PNG', 'GIF']
         
     def check_request(self, tlv):

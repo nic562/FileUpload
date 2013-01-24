@@ -15,6 +15,7 @@ from FileUpload.configs import settings
 from FileUpload.handlers.file_system import BaseFileSystem
 
 class BaseHandler(object):
+    CONNECTION_TIMEOUT = 5 # 默认链接超时时间
     ALLOW_FILE_EXTENSION = [] # 空则代表允许所有
     FILE_MAX_SIZE = settings.DEFAULT_FILESIZE_LIMIT
    
