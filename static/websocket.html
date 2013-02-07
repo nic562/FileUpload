@@ -1,0 +1,187 @@
+<!DOCTYPE html>  
+<html>  
+<head>  
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>  
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<script type="text/javascript" src="script/spark-md5.min.js"></script>
+<title>WebSockets FileUpload Client</title>  
+
+<style type='text/css'>
+body {  
+    font-family:Arial, Helvetica, sans-serif;  
+}  
+#container{  
+    border:5px solid grey;  
+    width:800px;  
+    margin:0 auto;  
+    padding:10px;  
+}  
+#chatLog{  
+    padding:5px;  
+    border:1px solid black;  
+}  
+#chatLog p {  
+    margin:0;  
+}  
+.event {  
+    color:#999;  
+}  
+.warning{  
+    font-weight:bold;  
+    color:#CCC;  
+}
+</style>
+</head>  
+<body>  
+<div id="wrapper">
+ 
+    <div id="container">
+        <h1>WebSockets FileUpload Client</h1>
+        <div id="chatLog">
+        </div><!-- #chatLog -->
+        <i id="examples">choose a file to upload</i>
+        <br />
+        <input type="file" name="my_f" onchange="check_file(this)" />
+ 		<p id="file_upload_process" style="color: red"></p>
+    </div><!-- #container -->
+ 
+</div>
+<script type='text/javascript'>
+
+function check_file(obj){
+	var fileReader = new FileReader(),
+	    blobSlice = File.prototype.mozSlice || File.prototype.webkitSlice || File.prototype.slice,
+	    file = obj.files[0],
+	    chunkSize = 50 * 1024, // read in chunks of 50kb
+	    chunks = Math.ceil(file.size / chunkSize),
+	    currentChunk = 0,
+	    spark = new SparkMD5.ArrayBuffer(),
+	    file_content_array = new Array();
+
+    fileReader.onload = function(e) {
+        // console.log("read chunk nr", currentChunk + 1, "of", chunks);
+        file_content_array.push(e.target.result);
+        spark.append(e.target.result); // append binary buffer
+        currentChunk++;
+		
+        if (currentChunk < chunks) {
+            loadNext();
+        }
+        else {
+            // console.log("finished loading");
+            // alert('file size: ' + file.size + ' MD5 hash:'+spark.end());
+            // console.info("computed hash", spark.end()); // compute hash
+            if(confirm('成功读取文件！确定要上传文件[' + file.name + ']吗？')){
+            	do_upload_file(file.name, file.size, spark.end(), file_content_array);
+            }
+        }
+    };
+
+    function loadNext() {
+        var start = currentChunk * chunkSize,
+            end = start + chunkSize >= file.size ? file.size : start + chunkSize;
+
+        // fileReader.readAsBinaryString(blobSlice.call(file, start, end));
+        fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+    };
+
+    loadNext();
+}
+
+function do_upload_file(file_name, file_size, file_md5, file_content_array){
+	// console.log(file_name);
+	// console.log(file_size);
+	// console.log(file_md5);
+	// console.log(file_content_array.length);
+	
+	var sk;
+	try{
+		sk = new WebSocket('ws://172.16.11.110:9001');
+		sk.onopen = function(){
+			// alert('链接状态[' + sk.readyState + ']。准备上传... ');
+		}
+		sk.onmessage = function(msg){
+			// alert('有消息了:' + msg.data);
+			msg = msg.data
+			if(msg == '00'){
+				// alert('开始上传文件');
+				// 由于测试所得每次发送到服务端的内容长度非常有限，所以使用分段上传
+				file_content_array.forEach(function(element, index){
+					// alert(element.byteLength);
+					setTimeout(function(){
+						send(element);
+						$('p#file_upload_process').text(
+							Math.round((index * file_content_array[0].byteLength + element.byteLength) / file_size * 100) + '%'
+						);
+					}, index * 30);
+				});
+			}else if(msg.indexOf('01') == 0){
+				alert('上传失败，系统繁忙');
+			}else if(msg.indexOf('02') == 0){
+				alert('没有权限');
+			}else if(msg.indexOf('03') == 0){
+				alert('文件太大');
+			}else if(msg.indexOf('04') == 0){
+				alert('参数错误');
+			}else if(msg.indexOf('05') == 0){
+				alert('不允许的文件类型');
+			}else if(msg.indexOf('06') == 0){
+				alert('上传成功 *[' + msg.substring(15) + ']');
+			}else if(msg.indexOf('10') == 0){
+				alert('上传成功[' + msg.substring(15) + ']');
+			}else if(msg.indexOf('11') == 0){
+				alert('文件校验失败，请重新上传');
+			}else if(msg.indexOf('12') == 0){
+				alert('文件系统异常');
+			}else{
+				alert('未知信息：' + msg);
+			}
+		}
+		sk.onclose = function(){
+			console.log('失去链接[' + sk.readyState + ']');
+		}
+	} catch(error){
+		alert('Error:' + error);
+	}
+	
+	function send(msg){
+		try{
+			setTimeout(function(){
+				sk.send(msg);
+			}, 20);
+		} catch(error){
+			alert('Error:' + error);
+		}
+	}
+	send(add_zero(1, 4) + file_md5 + add_zero(file_size, 11) +
+		add_zero(1, 2) + add_zero(5, 11) + '12345' + // session_id tlv
+		add_zero(2, 2) + add_zero(file_name.length, 11) + file_name // file_name tlv
+	);
+}
+
+function add_zero(_num, length){
+	_num = String(_num);
+	var str_zero = '';
+	for(var i=0; i < length - _num.length; i++){
+		str_zero += '0';
+	}
+	return str_zero + _num;
+}
+
+$(document).ready(function() {
+	if(!("WebSocket" in window)){
+		$('#chatLog, input, button, #examples').fadeOut("fast");  
+		$('<p>Oh no, you need a browser that supports WebSockets. How about <a href="http://www.google.com/chrome">Google Chrome</a>?</p>').appendTo('#container');  
+	}
+  
+	function message(msg){  
+		$('#chatLog').append(msg+'</p>');  
+	}
+	
+	var alert_bak = window.alert
+	
+	window.alert = message;
+});
+</script>
+</body>  
+</html>​
