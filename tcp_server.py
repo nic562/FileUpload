@@ -66,6 +66,7 @@ def _gc_socket(func):
     'socket 回收装饰器'
     def wrapper(socket, remote_address):
         if settings.DEBUG: note('new socket: %s' %id(socket))
+        socket._start_time = time.time() # 赋值开始时间
         living_socket_list.append(socket) # 把链接存放到管理列表中
         func(socket, remote_address)
         if socket in living_socket_list:
@@ -120,7 +121,6 @@ class FileObjWrapper(object):
 @_gc_socket
 def do_upload(socket, remote_address):
     # print remote_address
-    socket._start_time = time.time() # 赋值开始时间
     socket._status = SOCKET_STATUS_WAITING # 标记链接状态
     
     error_code = ''
@@ -222,14 +222,17 @@ s = server.StreamServer((settings.SERVER_IP, settings.SERVER_PORT), do_upload, b
 # s.init_socket() # gevent 1.x
 s.pre_start() # gevent 0.13
 
+_smng = SocketManager()
+_smng.setDaemon(True)
+_smng.start()
+
 def serve_forever(server_):
     note('starting server')
-    _smng = SocketManager()
-    _smng.setDaemon(True)
-    _smng.start()
+    _m = SocketManager()
+    _m.setDaemon(True)
+    _m.start()
     try:
         server_.start_accepting()
-        
         # server_._stop_event.wait() # gevent 1.x
         server_._stopped_event.wait() # gevent 0.13
     except KeyboardInterrupt:
